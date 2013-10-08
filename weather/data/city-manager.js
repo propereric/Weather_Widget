@@ -16,7 +16,7 @@ function cityElement() {
   * redirect the user to the appr. yahoo page
   ***************************************/
   pub.onClickName = function() {	//redirect the user based on the WOEID
-    window.open('http://weather.yahoo.com/a/a/a-'+pub.woeid+'/','_newtab');
+    window.open('http://weather.yahoo.com/_/_/_-'+pub.woeid+'/','_newtab');
   };
 
   /***************************************
@@ -104,12 +104,12 @@ function cityElement() {
     else {
       img1.src="staroutline.png"
     }
-    img1.width=20;
+    img1.width=28;
     img1.addEventListener('click', pub.onClickStar);
 
     var img2=document.createElement('img');
     img2.src="x.png"
-    img2.width=17;
+    img2.width=25;
     img2.addEventListener('click', pub.onClickX);
   
     td.appendChild(img1);
@@ -128,14 +128,6 @@ function cityElement() {
 
   return pub;
 }
-
-
-
-
-
-
-
-
 
 
 
@@ -310,10 +302,10 @@ var cityManager = (function () {
       outputCityElements();
     };  
 
-    /***************************************
+    /******************************************
     * Remove a city from the list, reorganize
-    ***************************************/
-    pub.removeCity = function(woeid) {	//remove the city from the container and reorganize
+    ******************************************/
+    pub.removeCity = function(woeid) {
 
       var rank = 0;
       var index = 0;
@@ -399,16 +391,16 @@ var cityManager = (function () {
       return imageLink;
     };
 
-    /***************************************
+    /******************************************
     * Clears all city elements from container
-    ***************************************/
+    ******************************************/
     function clearCityContainer() {	//clear the city container of all elements
       cityContainer.innerHTML='';
     };
 
-    /***************************************
+    /******************************************
     * Call output on all elements => container
-    ***************************************/
+    ******************************************/
     function outputCityElements() {	//get outputCode on all cities, add to container
       clearCityContainer();
 
@@ -423,7 +415,7 @@ var cityManager = (function () {
       {
         cityList[i].addPrefEntry();
 
-        if(document.getElementById("customize-text").innerHTML == "Exit Customization") 
+        if(pub.customizeButton.innerHTML == "Exit Customization") 
         {
           cityContainer.appendChild(cityList[i].outputElement(1));
         }
@@ -441,10 +433,9 @@ var cityManager = (function () {
 
 
 
-
-/* ***************
+/****************
 * Event Handling
-* ***************/
+****************/
 cityManager.customizeButton.addEventListener('click', cityManager.onToggleEditView); 
 cityManager.addCityButton.addEventListener('click', cityManager.onAddCity);
 

@@ -36,23 +36,21 @@
 //        multiview.appendChild(panelview);
 //}
 
-var _ = require("sdk/l10n").get;
 
+//Require statements
+var _ = require("sdk/l10n").get;
 var widgets = require("sdk/widget");
 var tabs = require("sdk/tabs");
 var self = require("sdk/self");
 var sp = require("sdk/simple-prefs");
 const timer = require("timer");
 const Request = require("request").Request;
-
-
 var main_panel = require("sdk/panel").Panel({
   width:450,
-  height: 270,
+  height: 255,
   contentURL: self.data.url("main_panel.html"),
   contentScriptFile: [self.data.url("city-manager.js"), self.data.url("jquery-2.0.3.min.js")]
 });
-
 var widget = widgets.Widget({
   id: "weather-widget",
   label: "Weather Widget",
@@ -60,9 +58,18 @@ var widget = widgets.Widget({
   panel: main_panel
 });
 
+//global timer code to force update every hour
+let timeout = timer.setTimeout(updateWeather, 60 * 60000);
 
-main_panel.port.on("retrieve-woeid", function (cityOrZip) {
 
+
+
+
+/**********************************************
+*   Used to return woeid from zip or cityname
+**********************************************/
+main_panel.port.on("retrieve-woeid", function (cityOrZip) 
+{
   var url = "http://where.yahooapis.com/v1/places.q('"+cityOrZip+"')?format=json&appid=[S.acCMXV34GqNtuNg3WK590qQsnmF2LBDx2inBUwRZTU3dlVYrlyBN6hBJaDi4itcg--]"
   
   Request({
@@ -75,8 +82,11 @@ main_panel.port.on("retrieve-woeid", function (cityOrZip) {
   }).get();
 });
 
-main_panel.port.on("retrieve-forecast", function (wOEID) {
-
+/*****************************************
+*   Used to retrieve forecast for woeid
+*****************************************/
+main_panel.port.on("retrieve-forecast", function (wOEID) 
+{
   var url = "http://weather.yahooapis.com/forecastrss?w="+wOEID+"&u=f"
   
   Request({
@@ -92,24 +102,28 @@ main_panel.port.on("retrieve-forecast", function (wOEID) {
   }).get();
 });
 
-//timer code to force update every hour
-let timeout = timer.setTimeout(updateWeather, 60 * 60000);
+/************************************************
+* function to modify preferences from a message  
+************************************************/
+main_panel.port.on("write-to-pref", function (object) { setPreference(object.rank, object.woeid); });
 
-  function updateWeather() {
-
+/*************************************
+*   Used to initiate update on cities
+*************************************/
+function updateWeather() 
+{
     main_panel.port.emit("update-weather", "update");
 
-    if (timeout)  {
+    if (timeout)
+    {
       timer.clearTimeout(timeout);
     }
     timeout = timer.setTimeout(updateWeather, 60 * 60000);
-  }
+}
 
-
-/*********************************/
-/******* Simple Pref Stuff *******/
-/*********************************/
-
+/*************************************
+*   Checks for next empty pref
+*************************************/
 function nextEmpty(currentRank)
 {
   if(sp.prefs["cityTwoWOEID"] == '' && currentRank < 1){return 1};
@@ -119,6 +133,9 @@ function nextEmpty(currentRank)
   return -1;
 }
 
+/*************************************
+*   Checks for next non-empty pref
+*************************************/
 function nextNotEmpty(currentRank)
 {
   if(sp.prefs["cityTwoWOEID"] && currentRank < 1){return 1};
@@ -128,6 +145,9 @@ function nextNotEmpty(currentRank)
   return -1;
 }
 
+/****************************************
+*   Sets the corresponding pref for rank
+****************************************/
 function setPreference(rank, woeid)
 {
   switch(rank)
@@ -150,6 +170,9 @@ function setPreference(rank, woeid)
     }
 }
 
+/****************************************
+*   Gets the corresponding pref for rank
+****************************************/
 function getPreference(rank)
 {
   switch(rank)
@@ -172,68 +195,15 @@ function getPreference(rank)
     }
 }
 
-//loads simple prefs at start-up
-if(sp.prefs.cityOneWOEID) 
-{
-  var s = {rank: 0, woeid: sp.prefs.cityOneWOEID }; main_panel.port.emit("pref-change", s);
-}
-else 
-{ 
-  var x = nextNotEmpty(0);
-  if(x != -1)
-  {
-    setPreference(0, getPreference(x));
-  }
-}
-
-if(sp.prefs.cityTwoWOEID && sp.prefs.cityOneWOEID) 
-{
-  var s = {rank: 1, woeid: sp.prefs.cityTwoWOEID }; main_panel.port.emit("pref-change", s);
-}
-else 
-{ 
-  var x = nextNotEmpty(1);
-  if(x != -1)
-  {
-    setPreference(1, getPreference(x));
-  }
-}
-
-if(sp.prefs.cityTwoWOEID && sp.prefs.cityOneWOEID && sp.prefs.cityThreeWOEID) 
-{
-  var s = {rank: 2, woeid: sp.prefs.cityThreeWOEID }; main_panel.port.emit("pref-change", s);
-}
-else 
-{ 
-  var x = nextNotEmpty(2);
-  if(x != -1)
-  {
-    setPreference(2, getPreference(x));
-  }
-}
-
-if(sp.prefs.cityTwoWOEID && sp.prefs.cityOneWOEID && sp.prefs.cityThreeWOEID && sp.prefs.cityFourWOEID) 
-{
-  var s = {rank: 3, woeid: sp.prefs.cityFourWOEID }; main_panel.port.emit("pref-change", s);
-}
-else 
-{ 
-  var x = nextNotEmpty(3);
-  if(x != -1)
-  {
-    setPreference(3, getPreference(x));
-  }
-}
-
-if(sp.prefs.cityTwoWOEID && sp.prefs.cityOneWOEID && sp.prefs.cityThreeWOEID && sp.prefs.cityFourWOEID && sp.prefs.cityFiveWOEID) 
-{
-  var s = {rank: 4, woeid: sp.prefs.cityFiveWOEID }; main_panel.port.emit("pref-change", s);
-}
 
 
 
 
-//listens to changes in preferences
+
+
+/*************************************
+*   listens to changes in preferences
+*************************************/
 sp.on("cityOneWOEID", function ()  
 { 
   var s = {rank: 0, woeid: sp.prefs.cityOneWOEID }; 
@@ -266,10 +236,82 @@ sp.on("cityFiveWOEID", function ()
 
 
 
-//function to modify preferences from a message
-main_panel.port.on("write-to-pref", function (object) { setPreference(object.rank, object.woeid); });
+
+
+/***************************************
+*    Called on load, install, etc
+***************************************/
+exports.main = function (options, callbacks)
+{
+	//loads simple prefs at start-up
+	if(sp.prefs.cityOneWOEID) 
+	{
+	  var s = {rank: 0, woeid: sp.prefs.cityOneWOEID }; main_panel.port.emit("pref-change", s);
+	}
+	else 
+	{ 
+	  var x = nextNotEmpty(0);
+	  if(x != -1)
+	  {
+	    setPreference(0, getPreference(x));
+	  }
+	}
+	
+	if(sp.prefs.cityTwoWOEID && sp.prefs.cityOneWOEID) 
+	{
+	  var s = {rank: 1, woeid: sp.prefs.cityTwoWOEID }; main_panel.port.emit("pref-change", s);
+	}
+	else 
+	{ 
+	  var x = nextNotEmpty(1);
+	  if(x != -1)
+	  {
+	    setPreference(1, getPreference(x));
+	  }
+	}
+	
+	if(sp.prefs.cityTwoWOEID && sp.prefs.cityOneWOEID && sp.prefs.cityThreeWOEID) 
+	{
+	  var s = {rank: 2, woeid: sp.prefs.cityThreeWOEID }; main_panel.port.emit("pref-change", s);
+	}
+	else 
+	{ 
+	  var x = nextNotEmpty(2);
+	  if(x != -1)
+	  {
+	    setPreference(2, getPreference(x));
+	  }
+	}
+	
+	if(sp.prefs.cityTwoWOEID && sp.prefs.cityOneWOEID && sp.prefs.cityThreeWOEID && sp.prefs.cityFourWOEID) 
+	{
+	  var s = {rank: 3, woeid: sp.prefs.cityFourWOEID }; main_panel.port.emit("pref-change", s);
+	}
+	else 
+	{ 
+	  var x = nextNotEmpty(3);
+	  if(x != -1)
+	  {
+	    setPreference(3, getPreference(x));
+	  }
+	}
+	
+	if(sp.prefs.cityTwoWOEID && sp.prefs.cityOneWOEID && sp.prefs.cityThreeWOEID && sp.prefs.cityFourWOEID && sp.prefs.cityFiveWOEID) 
+	{
+	  var s = {rank: 4, woeid: sp.prefs.cityFiveWOEID }; main_panel.port.emit("pref-change", s);
+	}
+};
+
+/***************************************
+*    Called on Unload
+***************************************/
+exports.onUnload = function (reason)
+{
+  
+};
+
+
 
 /*
 Localization cannot be done in content scripts, I tried but it seems we need to find another way
 */
-
